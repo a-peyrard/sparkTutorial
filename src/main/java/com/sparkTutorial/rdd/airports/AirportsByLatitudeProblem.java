@@ -1,20 +1,36 @@
 package com.sparkTutorial.rdd.airports;
 
+import com.sparkTutorial.rdd.commons.Utils;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaSparkContext;
+
 public class AirportsByLatitudeProblem {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        /*
+            Create a Spark program to read the airport data from in/airports.text,  find all the airports whose latitude are bigger than 40.
+            Then output the airport's name and the airport's latitude to out/airports_by_latitude.text.
 
-        /* Create a Spark program to read the airport data from in/airports.text,  find all the airports whose latitude are bigger than 40.
-           Then output the airport's name and the airport's latitude to out/airports_by_latitude.text.
+            Each row of the input file contains the following columns:
+            Airport ID, Name of airport, Main city served by airport, Country where airport is located, IATA/FAA code,
+            ICAO Code, Latitude, Longitude, Altitude, Timezone, DST, Timezone in Olson format
 
-           Each row of the input file contains the following columns:
-           Airport ID, Name of airport, Main city served by airport, Country where airport is located, IATA/FAA code,
-           ICAO Code, Latitude, Longitude, Altitude, Timezone, DST, Timezone in Olson format
-
-           Sample output:
-           "St Anthony", 51.391944
-           "Tofino", 49.082222
-           ...
+            Sample output:
+            "St Anthony", 51.391944
+            "Tofino", 49.082222
+            ...
          */
+
+        JavaSparkContext context = new JavaSparkContext(
+                new SparkConf()
+                        .setAppName("airports")
+                        .setMaster("local[2]")
+        );
+
+        context.textFile("in/airports.text")
+               .map(line -> line.split(Utils.COMMA_DELIMITER))
+               .filter(tokens -> Double.parseDouble(tokens[6]) > 40)
+               .map(tokens -> tokens[1] + "," + tokens[6])
+               .saveAsTextFile("out/airports_by_latitude.text");
     }
 }

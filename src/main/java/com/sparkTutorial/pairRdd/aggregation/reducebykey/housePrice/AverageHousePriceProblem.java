@@ -1,6 +1,16 @@
 package com.sparkTutorial.pairRdd.aggregation.reducebykey.housePrice;
 
 
+import com.sparkTutorial.rdd.commons.Utils;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import scala.Tuple2;
+
+import java.util.Map;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 public class AverageHousePriceProblem {
 
     public static void main(String[] args) throws Exception {
@@ -34,6 +44,26 @@ public class AverageHousePriceProblem {
 
            3, 1 and 2 mean the number of bedrooms. 325000 means the average price of houses with 3 bedrooms is 325000.
          */
-    }
 
+        Logger.getLogger("org").setLevel(Level.OFF);
+
+        JavaSparkContext context = new JavaSparkContext(
+            new SparkConf()
+                .setAppName("house prices")
+                .setMaster("local[*]")
+        );
+
+        Map<Integer, Double> averagePricesPerBed =
+            context.textFile("in/RealEstate.csv")
+                   .map(line -> line.split(Utils.COMMA_DELIMITER))
+                   .filter(tokens -> !tokens[0].equals("MLS"))
+                   .mapToPair(tokens -> new Tuple2<>(Integer.valueOf(tokens[3]), new AvgCount(1, Double.parseDouble(tokens[2]))))
+                   .reduceByKey((ac1, ac2) -> new AvgCount(ac1.getCount() + ac2.getCount(), ac1.getTotal() + ac2.getTotal()))
+                   .mapValues(avgCount -> avgCount.getTotal() / avgCount.getCount())
+                   .collectAsMap();
+
+        for (Map.Entry<Integer, Double> pricePerBed : averagePricesPerBed.entrySet()) {
+            System.out.println(pricePerBed.getKey() + " : " + pricePerBed.getValue());
+        }
+    }
 }
